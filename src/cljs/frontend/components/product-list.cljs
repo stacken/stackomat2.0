@@ -26,13 +26,18 @@
                        (.preventDefault event)
                        (submit-callback @value)
                        (reset! value ""))}
-   [:div {:class "form-group"}
+   [:div {:class "form-group row"}
     [:input {:type "text"
              :id "barcodeInput"
-             :class "form-control"
+             :class "form-control col-xs-10"
              :value @value 
              :on-change (fn [event] (reset! value (-> event .-target .-value)))
-             :placeholder "Scanna vara"}]]])
+             :placeholder "Scanna vara"}]
+    [:a [:span {:class "glyphicon glyphicon-remove btn btn-default col-xs-2"
+                :onClick (fn [event] 
+                           (.preventDefault event)
+                           (focus-barcode-input!)
+                           (reset! value ""))}]]]])
 
 (defn table-head []
   [:thead
@@ -55,6 +60,7 @@
                             (for [product (doall (filter-products @state @search-value))]
                               ^{:key product}
                               [:tr {:onClick (fn [event] 
+                                               (.preventDefault event)
                                                (focus-barcode-input!)
                                                (events/send-event (:channel @state) :product-list :product-chosen product))}
                                [:td (:name product)]
