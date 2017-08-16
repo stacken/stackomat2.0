@@ -1,0 +1,111 @@
+(ns frontend.state
+  (:require [datascript.core :as d]
+            [frontend.events :as events]))
+
+(def schema
+  {:product/id {:db/unique :db.unique/identity
+                        :db/cardinality :db.cardinality/one
+                        :db/doc "The id (barcode) of a product"}
+   :product/name {:db/cardinality :db.cardinality/one
+                  :db/doc "The displayed name of a product"}
+   :product/price {:db/cardinality :db.cardinality/one
+                   :db/doc "The price of a product, in ören."}
+   :product/chosen {:db/cardinality :db.cardinality/one
+                    :db/doc "true or false"}
+   :user/id {:db/unique :db.unique/identity
+             :db/cardinality :db.cardinality/one
+             :db/doc "The user id"}
+   :user/balance {:db/unique :db.unique/identity
+                  :db/cardinality :db.cardinality/one
+                  :db/doc "The user balance."}
+   :user/money-to-add { :db/unique :db.unique/identity
+                  :db/cardinality :db.cardinality/one
+                  :db/doc "The amount to add to the user's account."}
+   :message/text {:db/unique :db.unique/identity
+                  :db/cardinality :db.cardinality/one
+                  :db/doc "A message to show the user."}
+   :message/type {:db/unique :db.unique/identity
+                  :db/cardinality :db.cardinality/one
+                  :db/doc "The type of the message"}})
+
+(defn make-initial-db []
+  (let [db (d/create-conn schema)]
+    (d/transact! db [{:db/id -1 :app/key-counter 0}
+                     {:db/id -2 :user/id "" :user/balance -1}
+                     {:db/id -3 :message/type :info :message/text "För att köpa: scanna eller välj en eller flera produkter och vifta med ditt mifarekort."}])
+    db))
+
+
+(defn make-state []
+  {:channel (events/make-channel)
+   :db (make-initial-db)
+   :db-app-id 1
+   :db-user-id 2})
+
+;(defn make-state []
+;  {:all-products []
+;   :chosen-products []
+;   :key-counter 0
+;   :user-id ""
+;   :balance nil
+;   :money-to-add 0
+;   :message {:message  :type :info}
+;   :channel (events/make-channel)})
+
+(defn choose-product [db-id]
+  [{:db/id db-id :product/chosen true}])
+
+(defn unchoose-product [db-id]
+  [{:db/id db-id :product/chosen false}])
+
+(defn remove-all-chosen-products [state]
+  (into [] (map (comp unchoose-product first)
+                (d/q '[:find ?id :where [?id :product/chosen true]] @(:db state)))))
+
+(defn set-user-id [state user-id]
+  [{:db/id (:db-user-id state)
+    :user/id user-id}])
+
+(defn set-balance [state balance]
+  [{:db/id (:db-user-id state)
+    :user/balance balance}])
+
+(defn set-money-to-add [state amount]
+  [{:db/id (:db-user-id state)
+    :user/money-to-add amount}])
+
+(defn add-new-products [state & products]
+  (into [] (map (fn [product]
+                  {:db/add -1 
+                   :product/name (:name product)
+                   :product/price (:price product)
+                   :product/id (:id product)
+                   :product/chosen false})
+                products)))
+
+(defn sum-of-chosen-products [state]
+  (reduce (comp first +)
+          (d/q '[:find ?price
+                 :where
+                 [?id :product/chosen true]
+                 [?id :product/price ?price]]
+               @(:db state))))
+
+(defn choose-money [state amount]
+  (set-money-to-add state (+ amount (:money-to-add state))))
+
+(defn set-message [state message type]
+  (assoc state :message {:message message :type type}))
+
+(defn reset [state]
+  (assoc (make-state) :channel (:channel state)))
+
+
+(defn make-test-db []
+  (let [db (make-initial-db)]
+    (d/transact! db [{:db/id -1 :product/id "aaa" :product/chosen false :product/name "Choklad" :product/price 10}
+                     {:db/id -2 :product/id "aab" :product/chosen false :product/name "Cola" :product/price 11}
+                     {:db/id -3 :product/id "aac" :product/chosen false :product/name "Fanta" :product/price 12}
+                     {:db/id -4 :product/id "aad" :product/chosen false :product/name "Läsk" :product/price 12.12}])
+    (d/transact! db (flatten [(choose-product 5) (choose-product 6)]))
+    db))
