@@ -19,25 +19,42 @@
 (defn submit-callback! [state search-value]
   (let [filtered-products (filter-products state search-value)]
     (if (= 1 (count filtered-products))
-      (events/send-event (:channel state) :product-list :product-chosen (first filtered-products)))))
+      (events/send-event (:channel state) 
+                         :product-list 
+                         :product-chosen (first filtered-products)))))
 
-(defn search-field [value submit-callback]
-  [:form {:on-submit (fn [event] 
+(defn clear-search [value]
+  [:a [:span {:class "glyphicon glyphicon-remove btn btn-default"
+              :onClick (fn [event] 
+                         (.preventDefault event)
+                         (focus-barcode-input!)
+                         (reset! value ""))}]])
+
+(defn show-all-products [should-show]
+  [:a [:span {:class "glyphicon glyphicon-th-list btn btn-default"
+              :style {:color (if @should-show "green")}
+              :onClick (fn [event]
+                         (.preventDefault event)
+                         (focus-barcode-input!)
+                         (reset! should-show (not @should-show)))
+              }]])
+
+(defn search-field [value submit-callback should-show-all-products]
+  [:form {:class "form-inline"
+          :on-submit (fn [event] 
                        (.preventDefault event)
                        (submit-callback @value)
                        (reset! value ""))}
-   [:div {:class "form-group row"}
+   [:div {:class "form-group"}
+    [show-all-products should-show-all-products]
     [:input {:type "text"
+             :style {:width "660px" :height "47px"}
              :id "barcodeInput"
-             :class "form-control col-xs-10"
+             :class "form-control"
              :value @value 
              :on-change (fn [event] (reset! value (-> event .-target .-value)))
              :placeholder "Scanna vara"}]
-    [:a [:span {:class "glyphicon glyphicon-remove btn btn-default col-xs-2"
-                :onClick (fn [event] 
-                           (.preventDefault event)
-                           (focus-barcode-input!)
-                           (reset! value ""))}]]]])
+    [clear-search value]]])
 
 (defn table-head []
   [:thead
@@ -46,23 +63,35 @@
     [:th {:class "col-sm-3"} "Pris"]
     [:th {:class "col-sm-2"} "Plocka"]]])
 
+(defn table-body [state search-value]
+  [:tbody
+   (for [product (doall (filter-products @state @search-value))]
+     ^{:key product}
+     [:tr {:onClick (fn [event] 
+                      (.preventDefault event)
+                      (focus-barcode-input!)
+                      (events/send-event (:channel @state) 
+                                         :product-list 
+                                         :product-chosen product))
+           :class "product-list-row"}
+      [:td (:name product)]
+      [:td (:price product)]
+      [:td [:span {:class "glyphicon glyphicon-plus"}]]])])
+
 (defn product-list [state]
-  (let [search-value (r/atom "")]
+  (let [search-value (r/atom "")
+        should-show-all-products (r/atom false)]
     (r/create-class
       {:display-name "product-list-with-atom"
-       :component-did-mount (fn [e] (.focus (.getElementById js/document "barcodeInput")))
-       :reagent-render (fn [state]
-                         [:div
-                          [search-field search-value #(submit-callback! state %)]
-                          [:table {:class "table table-striped col-sm-12"}
-                           [table-head]
-                           [:tbody
-                            (for [product (doall (filter-products @state @search-value))]
-                              ^{:key product}
-                              [:tr {:onClick (fn [event] 
-                                               (.preventDefault event)
-                                               (focus-barcode-input!)
-                                               (events/send-event (:channel @state) :product-list :product-chosen product))}
-                               [:td (:name product)]
-                               [:td (:price product)]
-                               [:td [:span {:class "glyphicon glyphicon-plus"}]]])]]])})))
+       :component-did-mount 
+       (fn [e] (.focus (.getElementById js/document "barcodeInput")))
+
+       :reagent-render 
+       (fn [state]
+         [:div
+          [search-field search-value #(submit-callback! @state %) should-show-all-products]
+          [:div {:class "product-list"}
+           (if @should-show-all-products
+             [:table {:class "table table-striped col-sm-12"}
+              [table-head]
+              [table-body state search-value]])]])})))

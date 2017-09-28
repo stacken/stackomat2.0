@@ -3,13 +3,19 @@
             [datascript.core :as d])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
+(defn make-event 
+  ([source event-type] 
+   {:source source :type event-type})
+  ([source event-type payload]
+   {:source source :type event-type :payload payload}))
+
 (defn send-event 
   ([channel event]
    (go (>! channel event)))
   ([channel source event-type]
-   (send-event channel {:source source :type event-type}))
+   (send-event channel (make-event source event-type)))
   ([channel source event-type payload]
-   (send-event channel {:source source :type event-type :payload payload})))
+   (send-event channel (make-event source event-type payload))))
 
 (defn make-channel []
   (chan 100))

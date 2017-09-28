@@ -20,18 +20,25 @@
         ;; 1xx and 3xx are currently out of scope
         true :http-response))
 
-(defn- send-response-event [channel url response]
-  (events/send-event channel 
-                     :http
+(defn make-response-event [url response]
+  (events/make-event :http 
                      (get-response-type (:status response))
                      {:url url :response response}))
 
 (defn http-get [channel url]
-  (go (send-response-event channel url (<! (http/get url)))))
+  (go (events/send-event
+        channel 
+        (make-response-event url (<! (http/get url))))))
 
-(defn http-post [channel url params]
+(defn http-post [channel url params & callback-events]
   (go (let [token-response (<! (http/get "/token"))
             csrf-token (:body token-response)]
         (go (let [result (<! (http/post url {:json-params params
-                                             :headers ["X-CSRF-TOKEN" csrf-token]}))]
-              (send-response-event channel url result))))))
+                                             :headers ["X-CSRF-TOKEN" csrf-token]}))
+                  response-event (make-response-event url result)
+                  events-to-send (concat [response-event] callback-events)]
+              (reduce (fn [count event]
+                        (events/send-event channel event)
+                        (+ count 1))
+                      0 
+                      events-to-send))))))

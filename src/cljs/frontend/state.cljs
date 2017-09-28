@@ -43,8 +43,14 @@
 (defn choose-money [state amount]
   (set-money-to-add state (+ amount (:money-to-add state))))
 
-(defn set-message [state message type]
-  (assoc state :message {:message message :type type}))
+(defn set-message 
+  ([state message type title]
+   (set-message state message type title true))
+  ([state message type title enabled]
+   (assoc state :message {:message message 
+                          :title title
+                          :type type 
+                          :enabled enabled})))
 
 (defn reset [state]
   (-> state
@@ -52,5 +58,5 @@
       (set-money-to-add 0)
       (set-balance nil)
       (set-user-id "")
-      (set-message "" :info)))
+      (set-message "" :info "")))
 

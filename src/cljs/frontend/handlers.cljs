@@ -111,7 +111,8 @@
                                       :pay-not-enough-money
                                       :set-message 
                                       {:type :success
-                                       :message (str "Du betalade " (:amount response))})
+                                       :title "Betalat!"
+                                       :message (str "Du betalade " (.toFixed (:amount response) 2) " ☂")})
                    state))}
 
    {:name "pay-not-enough-money"
@@ -127,41 +128,42 @@
                                       :pay-not-enough-money
                                       :set-message 
                                       {:type :error
+                                       :title "Pengar saknas."
                                        :message (:message response)})
                    state))}
 
-   {:name "set-balance"
-    :query '[:find ?balance
-             :where 
-             [?id :event/type :have-balance]
-             [?id :payload ?balance]]
-    :function (fn ([state balance]
-                   (state/set-balance state balance)))}
+{:name "set-balance"
+ :query '[:find ?balance
+          :where 
+          [?id :event/type :have-balance]
+          [?id :payload ?balance]]
+ :function (fn ([state balance]
+                (state/set-balance state balance)))}
 
-   {:name "reset-state"
-    :query '[:find ?id
-             :where 
-             [?id :event/type :reset-purchase]]
-    :function (fn ([state _]
-                   (events/send-event (:channel state) :reset-state :change-page {:page :login})
-                   (state/reset state)))}
+{:name "reset-state"
+ :query '[:find ?id
+          :where 
+          [?id :event/type :reset-purchase]]
+ :function (fn ([state _]
+                (events/send-event (:channel state) :reset-state :change-page {:page :login})
+                (state/reset state)))}
 
-   {:name "reset-state-update-products"
-    :query '[:find ?id
-             :where 
-             [?id :event/type :reset-purchase]]
-    :function (fn ([state _]
-                   (http/http-get (:channel state) "/products")
-                   state))}
+{:name "reset-state-update-products"
+ :query '[:find ?id
+          :where 
+          [?id :event/type :reset-purchase]]
+ :function (fn ([state _]
+                (http/http-get (:channel state) "/products")
+                state))}
 
-   {:name "keyboard-listener"
-    :query '[:find ?character
-             :where 
-             [?id :event/type :character]
-             [?id :payload ?character]]
-    :function (fn ([state character]
-                   (js/console.log (str character))
-                   state))}
+{:name "keyboard-listener"
+ :query '[:find ?character
+          :where 
+          [?id :event/type :character]
+          [?id :payload ?character]]
+ :function (fn ([state character]
+                (js/console.log (str character))
+                state))}
 
 {:name "choose-money"
  :query '[:find ?amount
@@ -179,7 +181,10 @@
  :function (fn ([state amount]
                 (http/http-post (:channel state)
                                 (str "/user/" (:user-id state) "/addmoney")
-                                {:amount amount})
+                                {:amount amount}
+                                (events/make-event :add-money :set-message {:title "Laddad!"
+                                                                            :message (str "Du har laddad " amount ".")
+                                                                            :type :success}))
                 state))}
 
 {:name "set-message"
@@ -188,5 +193,15 @@
           [?id :event/type :set-message]
           [?id :payload ?message-data]]
  :function (fn [state message-data]
-             (state/set-message state (:message message-data) (:type message-data)))}
+             (state/set-message state 
+                                (:message message-data) 
+                                (:type message-data)
+                                (:title message-data)))}
+
+{:name "close-message"
+ :query '[:find ?id
+          :where 
+          [?id :event/type :close-message]]
+ :function (fn [state _]
+             (state/set-message state "" :info "" false))}
 ])

@@ -3,6 +3,7 @@
               [frontend.components.purchase :refer [purchase]]
               [frontend.components.account :refer [account]]
               [frontend.components.login :refer [login]]
+              [frontend.components.message :refer [message]]
               [frontend.state :as state]
               [frontend.http :as http]
               [frontend.events :as events]
@@ -27,6 +28,9 @@
 (defn account-page []
   [:div [account state]])
 
+(defn message-page []
+  [:div [message state]])
+
 (defn current-page []
   [:div [(session/get :current-page)]])
 
@@ -46,6 +50,7 @@
                                 (cond (= :login (:page payload)) #'login-page
                                       (= :purchase (:page payload)) #'purchase-page
                                       (= :account (:page payload)) #'account-page
+                                      (= :message (:page payload)) #'message-page
                                       true (session/get :current-page)))
                   state))})
 
@@ -67,6 +72,6 @@
   (events/listen (:channel @state) 
                  state
                  (conj handlers/handlers handler-change-current-page)
-                 (* 30 1000 2 60))
+                 (* 30 1000))
   (http/http-get (:channel @state) "/products") 
   (mount-root))
