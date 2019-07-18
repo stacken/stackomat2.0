@@ -12,6 +12,7 @@
                  [ring/ring-defaults "0.2.3"]
                  [ring/ring-json "0.4.0"]
                  [ring/ring-anti-forgery "1.1.0"]
+                 [digest "1.4.6"]
                  [compojure "1.5.2"]
                  [hiccup "1.0.5"]
                  [garden "1.3.2"]
@@ -24,6 +25,7 @@
                  [venantius/accountant "0.2.0"
                   :exclusions [org.clojure/tools.reader]]
                  [datascript "0.16.1"]
+                 [environ "1.1.0"]
                  [cljs-http "0.1.43"]]
 
   :plugins [[lein-environ "1.0.2"]

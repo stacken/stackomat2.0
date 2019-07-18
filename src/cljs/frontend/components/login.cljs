@@ -2,13 +2,22 @@
   (:require [frontend.events :as events]
             [reagent.core :as r]))
 
+(defn focus-login! []
+  (->> "login"
+       (.getElementById js/document)
+       .focus))
+
 (defn login-input [state]
-  (let [user-id (r/atom "")]
+  (let [user-id (r/atom "")
+        loginInterval (r/atom nil)]
     (r/create-class 
-      {:component-did-mount (fn [e]
-                              (->> "login"
-                                   (.getElementById js/document)
-                                   .focus))
+      {:component-did-mount (fn [e] 
+                              (reset! loginInterval (.setInterval js/window focus-login! 1000))
+                              (focus-login!))
+
+       :component-will-unmount
+       (reset! loginInterval (.clearInterval js/window loginInterval))
+
        :render (fn [] 
                  [:form {:class "login-form"
                          :on-submit (fn [event]

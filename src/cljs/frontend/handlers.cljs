@@ -108,12 +108,12 @@
              [?id :body ?response]]
     :function (fn ([state response]
                    (events/send-event (:channel state)
-                                      :pay-not-enough-money
+                                      :paid-successfully
                                       :set-message 
                                       {:type :success
                                        :title "Betalat!"
                                        :message (str "Du betalade " (.toFixed (:amount response) 2) " ☂")})
-                   state))}
+                   (state/remove-all-chosen-products state)))}
 
    {:name "pay-not-enough-money"
     :query '[:find ?response
@@ -184,7 +184,8 @@
                                 {:amount amount}
                                 (events/make-event :add-money :set-message {:title "Laddad!"
                                                                             :message (str "Du har laddad " amount ".")
-                                                                            :type :success}))
+                                                                            :type :success})
+                                (events/make-event :add-money :change-page {:page :purchase}))
                 state))}
 
 {:name "set-message"

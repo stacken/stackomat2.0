@@ -1,5 +1,6 @@
 (ns frontend.components.message
-  (:require [frontend.events :as events]))
+  (:require [clojure.string :as string]
+            [frontend.events :as events]))
 
 (defn close-message-button [state]
   [:a {:class "btn btn-default" 
@@ -14,7 +15,8 @@
         enabled (:enabled msg)
         title (:title msg)
         type (:type msg)]
-    (if enabled
+    (if (and enabled (or (not (string/blank? text))
+                         (not (string/blank? title))))
       [:div {:class "message-background row"}
        [:div {:class "message-content col-sm-8 col-sm-offset-2"}
           [:h2 {:class (cond (= :success type) "text-success"

@@ -1,6 +1,11 @@
 (ns frontend.components.cart
   (:require [frontend.events :as events]
+            [frontend.state :as state]
             [frontend.components.message :refer [message]]))
+
+(defn message-empty? [state]
+  (or (nil? (:message state))
+      false))
 
 (defn cart-table-head []
   [:thead

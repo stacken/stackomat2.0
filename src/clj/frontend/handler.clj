@@ -6,15 +6,13 @@
             [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
             [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]
             [ring.util.response :refer [response content-type status]]
+            [digest :refer [sha-256]]
             [frontend.db :as db]
             [config.core :refer [env]]))
 
 (def mount-target
   [:div#app
-      [:h3 "ClojureScript has not been compiled!"]
-      [:p "please run "
-       [:b "lein figwheel"]
-       " in order to start the compiler"]])
+      [:h3 "Loading..."]])
 
 (defn head []
   [:head
@@ -44,8 +42,9 @@
 (defn list-products []
   (make-response (db/list-products)))
 
+
 (defn handle-pay [request]
-  (let [user-id (get-in request [:params :user-id])
+  (let [user-id (sha-256 (get-in request [:params :user-id]))
         amount (get-in request [:body :amount])
         balance (db/get-balance {:id user-id})]
     (if (and (not (nil? balance)) ; check the user exists
@@ -56,7 +55,7 @@
       (make-response 403 {:message "Du har inte råd."}))))
 
 (defn handle-add-money [request]
-  (let [user-id (get-in request [:params :user-id])
+  (let [user-id (sha-256 (get-in request [:params :user-id]))
         amount (get-in request [:body :amount])]
     (let [user (db/select-user {:id user-id})]
       (if (empty? user)
@@ -66,7 +65,7 @@
                       :balance (db/get-balance {:id user-id})}))))
 
 (defn get-balance [user-id]
-  (let [balance (db/get-balance {:id user-id})]
+  (let [balance (db/get-balance {:id (sha-256 user-id)})]
     (make-response {:balance balance})))
 
 (defroutes routes

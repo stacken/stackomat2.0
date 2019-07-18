@@ -48,7 +48,6 @@
    [:div {:class "form-group"}
     [show-all-products should-show-all-products]
     [:input {:type "text"
-             :style {:width "660px" :height "47px"}
              :id "barcodeInput"
              :class "form-control"
              :value @value 
@@ -80,11 +79,18 @@
 
 (defn product-list [state]
   (let [search-value (r/atom "")
-        should-show-all-products (r/atom false)]
+        should-show-all-products (r/atom false)
+        selectBarcodeInterval (r/atom nil)]
     (r/create-class
       {:display-name "product-list-with-atom"
+
        :component-did-mount 
-       (fn [e] (.focus (.getElementById js/document "barcodeInput")))
+       (fn [e] 
+         (reset! selectBarcodeInterval (.setInterval js/window focus-barcode-input! 1000))
+         (.focus (.getElementById js/document "barcodeInput")))
+
+       :component-will-unmount
+       (reset! selectBarcodeInterval (.clearInterval js/window selectBarcodeInterval))
 
        :reagent-render 
        (fn [state]

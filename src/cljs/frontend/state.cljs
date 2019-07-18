@@ -59,4 +59,3 @@
       (set-balance nil)
       (set-user-id "")
       (set-message "" :info "")))
-
